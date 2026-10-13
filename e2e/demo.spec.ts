@@ -125,12 +125,12 @@ test('/demo builds its form from the spec and shows the newest run', async ({ pa
 	await expect(grafana).toHaveAttribute('src', /theme=light/);
 });
 
-test('on the deck slide a running run fits the frame and takes the rate, a scale-down and a halt', async ({ page }) => {
+test('in the slide frame a running run scrolls and takes the rate, a scale-down and a halt', async ({ page }) => {
 	const posted: [string, unknown][] = [];
 	const polls: string[] = [];
 	await page.setViewportSize({ width: 1280, height: 570 }); // the slide's frame height
 	await mock(page, posted, [], polls, true);
-	await page.goto('/demo?embed=1');
+	await page.goto('/demo');
 	const details = page.locator('details');
 	await expect(details).toHaveAttribute('open');
 	await expect(page.getByText('sms-b: Running, P = 2 × M = 10')).toBeVisible();
@@ -138,8 +138,7 @@ test('on the deck slide a running run fits the frame and takes the rate, a scale
 	await expect(page.getByTestId('queued')).toContainText('4 / C 10');
 	await expect(page.getByTestId('in flight')).toContainText('7 / P·M 20');
 	await expect(page.getByTestId('consumers')).toHaveText('Consumers: 1 running of 2');
-	const check = await page.getByTestId('check').boundingBox(); // the whole run view fits, the form open above it
-	expect(check!.y + check!.height).toBeLessThanOrEqual(570);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
 	await expect(page.getByTestId('rate')).toHaveText('100 msg/s');
 	await expect(page.getByTestId('λ offered, msg/s')).toContainText('100');
 	await page.getByRole('slider').fill('300');
@@ -163,4 +162,6 @@ test('on the deck slide a running run fits the frame and takes the rate, a scale
 		'Halted by g***@example.com: these totals are partial, so there is no check against the fold.',
 	);
 	await expect(page.getByRole('button', { name: 'Halt' })).toBeDisabled();
+	await page.setViewportSize({ width: 390, height: 844 }); // a phone: the page scrolls only down
+	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

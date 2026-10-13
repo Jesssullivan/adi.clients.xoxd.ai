@@ -68,7 +68,7 @@ test('/deck logs no console errors while every slide is visited', async ({ page 
 	});
 	page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 	// In production overlay/server.py serves /demo and /grafana; the preview does not.
-	await page.route('**/demo?embed=1', (route) => route.fulfill({ contentType: 'text/html', body: '<p>demo</p>' }));
+	await page.route('**/demo', (route) => route.fulfill({ contentType: 'text/html', body: '<p>demo</p>' }));
 	await page.route('**/grafana/**', (route) => route.fulfill({ contentType: 'text/html', body: '<p>panel</p>' }));
 	// The walkthrough video's poster, once src/lib/site.ts sets YOUTUBE_ID: the test reaches no YouTube host.
 	await page.route('https://i.ytimg.com/**', (route) => route.fulfill({ path: POSTER, contentType: 'image/png' }));

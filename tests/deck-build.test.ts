@@ -126,13 +126,13 @@ test('::live renders a lazy iframe, and a title and link line for print/PDF', ()
 	const pub = deckHtml(read('deck-public.ts'));
 	assert.match(
 		pub,
-		/<figure class="deck-live"><iframe class="deck-live__frame" data-src="\/resume\?embed=1" data-preload title="fixture live" style="height:480px"/,
+		/<figure class="deck-live"><iframe class="deck-live__frame" data-src="\/resume" data-preload title="fixture live" style="height:480px"/,
 	);
 	// reveal sets src from iframe[data-src] near the slide and keeps it there; a plain src would load at page load.
 	assert.doesNotMatch(pub, /class="deck-live__frame" src=/);
 	assert.match(
 		pub,
-		/<p class="deck-live__print">fixture live · <a href="https:\/\/adi\.clients\.xoxd\.ai\/resume\?embed=1">https:\/\/adi\.clients\.xoxd\.ai\/resume\?embed=1<\/a><\/p>/,
+		/<p class="deck-live__print">fixture live · <a href="https:\/\/adi\.clients\.xoxd\.ai\/resume">https:\/\/adi\.clients\.xoxd\.ai\/resume<\/a><\/p>/,
 	);
 	assert.doesNotMatch(pub, /deck-live__toggle|<img/);
 });
@@ -146,9 +146,9 @@ test('::live rejects unsafe src, a missing title and any attribute but src, titl
 		// parseAttrs unescapes `\\` to one backslash: the attribute value is `/\evil.example/x`.
 		'::live{src="/\\\\evil.example/x" title="t"}',
 		'::live{src="http://plain.example/" title="t"}',
-		'::live{src="/demo?embed=1"}',
-		'::live{src="/demo?embed=1" title="old shot" fallback="live.png"}',
-		'::live{src="/demo?embed=1" title="old text" fallback-text="f" provenance="p"}',
+		'::live{src="/demo"}',
+		'::live{src="/demo" title="old shot" fallback="live.png"}',
+		'::live{src="/demo" title="old text" fallback-text="f" provenance="p"}',
 	].join('\n\n');
 	fs.writeFileSync(path.join(tmp, 'sections/03-bad-live.md'), `${bad}\n`);
 	const { r } = build(tmp);
