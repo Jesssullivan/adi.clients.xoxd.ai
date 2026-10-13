@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { page } from '$app/state';
 	import { SegmentedControl } from '@skeletonlabs/skeleton-svelte';
 	import { SITE_TITLE } from '$lib/site';
 
@@ -44,8 +43,6 @@
 		Succeeded: 'border-success-500',
 		Failed: 'border-error-500',
 	};
-	// Prerendered pages cannot read the query, so this resolves on the client.
-	const embed = $derived(browser && page.url.searchParams.has('embed'));
 	let fields = $state<[string, Param][]>([]);
 	let values = $state<Record<string, number>>({});
 	let caps = $state<Record<string, number>>({});
@@ -190,31 +187,20 @@
 	<title>Demo · {SITE_TITLE}</title>
 </svelte:head>
 
-<main class="page-shell space-y-3" class:pt-3={embed} class:pb-0={embed} data-prose-measure="none">
-	{#if !embed}
-		<h1 class="h3" data-chrome>adi-sms demo</h1>
-		<p class="text-surface-600-400" data-chrome>
-			Each run is three Kubernetes Jobs: a Valkey queue pod, a producer that adds N messages at the rate λ, and P sender
-			pods of M senders each that take, send and commit them. Every T the server reads the queue and sets P to
-			⌈λ·E[τ]/M⌉ for the offered λ (Little's law), and adds a pod while the queue holds C. The gap between λ offered and
-			λ in is the backpressure. At N done it compares the committed total with the pure fold. Halt stops the run on the
-			cluster. The Grafana tab graphs the same run.
-		</p>
-	{/if}
+<main class="page-shell space-y-3" data-prose-measure="none">
+	<h1 class="h3">adi-sms demo</h1>
+	<p class="text-surface-600-400">
+		Each run is three Kubernetes Jobs: a Valkey queue pod, a producer that adds N messages at the rate λ, and P sender
+		pods of M senders each that take, send and commit them. Every T the server reads the queue and sets P to ⌈λ·E[τ]/M⌉
+		for the offered λ (Little's law), and adds a pod while the queue holds C. The gap between λ offered and λ in is the
+		backpressure. At N done it compares the committed total with the pure fold. Halt stops the run on the cluster. The
+		Grafana tab graphs the same run.
+	</p>
 	{#if ready}
-		<!-- Open on /demo and on the deck slide alike; in the slide's frame the run and its views scroll below them. -->
+		<!-- The deck slide frames this same page; inside its frame the page scrolls. -->
 		<details bind:open>
 			<summary class="cursor-pointer font-bold">Parameters</summary>
-			<form
-				id="params"
-				class={[
-					'grid gap-2 pt-2',
-					embed
-						? 'grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))]'
-						: 'grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]',
-				]}
-				onsubmit={start}
-			>
+			<form id="params" class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2 pt-2" onsubmit={start}>
 				{#each fields as [name, p] (name)}
 					<label class="label" title={hint(p)}>
 						<span class="label-text font-mono text-xs font-bold">{name}</span>
@@ -228,7 +214,7 @@
 							max={p.max}
 							bind:value={values[name]}
 						/>
-						{#if !embed}<small class="text-surface-600-400 text-xs leading-snug">{hint(p)}</small>{/if}
+						<small class="text-surface-600-400 text-xs leading-snug">{hint(p)}</small>
 					</label>
 				{/each}
 			</form>
@@ -321,15 +307,11 @@
 					src={framed ? dash : undefined}
 					loading="lazy"
 					title="Grafana dashboard for {s.run}"
-					class={[
-						embed ? 'h-[calc(100dvh-12rem)]' : 'h-96',
-						'w-full border-0',
-						view !== 'grafana' && 'invisible absolute inset-x-0 top-0',
-					]}
+					class={['h-96 w-full border-0', view !== 'grafana' && 'invisible absolute inset-x-0 top-0']}
 				></iframe>
 			</div>
 		{/if}
-		{#if !embed && runs.length}
+		{#if runs.length}
 			<h2 class="h5">Recent runs</h2>
 			<div class="table-wrap">
 				<table class="table text-sm">

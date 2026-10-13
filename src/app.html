@@ -18,7 +18,7 @@
 			crossorigin
 		/>
 		<!-- Pre-paint mode: dark by default, the stored choice otherwise (the
-		     xoxd.ai fouc shape, single pine theme), and the embed flag. -->
+		     xoxd.ai fouc shape, single pine theme). -->
 		<script>
 			(function () {
 				var mode = 'dark';
@@ -31,8 +31,6 @@
 				document.documentElement.setAttribute('data-mode', mode);
 				document.documentElement.style.colorScheme = mode;
 				document.documentElement.setAttribute('data-theme', 'pine');
-				// ?embed=1 (the deck's frames): [data-chrome] hides now, so its removal at hydration moves nothing.
-				if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.setAttribute('data-embed', '');
 			})();
 		</script>
 		<!-- The Hello Analog! interstitial (src/app.css), a pattern shared with my other sites: armed here, before first

@@ -13,7 +13,7 @@
 	const reload = (href: string) => (href === '/deck' || href === '/demo' ? '' : undefined);
 </script>
 
-<header data-testid="public-navigation" data-chrome>
+<header data-testid="public-navigation">
 	<div class="site-header__inner flex min-h-14 flex-wrap items-center gap-x-5 gap-y-2 py-2">
 		<a href="/" class="hover:text-primary-500 inline-flex items-center gap-2 font-mono text-lg font-bold">
 			<span class="nav-avatar" data-tip="Hi there, my name is Jess!">

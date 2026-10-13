@@ -344,12 +344,6 @@
 		max-width: none;
 	}
 
-	/* src/app.html sets data-embed before first paint on ?embed=1; the header and page intro that the
-	   client then removes take no space meanwhile, so the framed page does not shift. */
-	:root[data-embed] [data-chrome] {
-		display: none;
-	}
-
 	/* ===== Landing page ===== */
 	/* The order: the greeting, the three buttons, the "I love ..." text, the video. The portrait floats
 	   right inside a circle 1rem wider than it, and the text wraps around that circle, so no line reaches the portrait
