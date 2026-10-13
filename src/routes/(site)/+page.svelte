@@ -50,7 +50,7 @@
 	</section>
 
 	<section aria-labelledby="video-title" class="reading-column text-center">
-		<h2 id="video-title">Walkthrough video</h2>
+		<h2 id="video-title">Whiteboard Session</h2>
 		<div class="landing-video">
 			{#if YOUTUBE_ID}
 				<YouTubeLite
