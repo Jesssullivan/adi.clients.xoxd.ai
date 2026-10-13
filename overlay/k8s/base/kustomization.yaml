@@ -10,6 +10,7 @@ labels:
 resources:
   - deployment.yaml
   - service.yaml
+  - runs.yaml
   - ../../grafana
 configMapGenerator:
   - name: web # the server's settings, read as environment variables; P_MAX = 10: web, grafana, a run's queue and

@@ -26,6 +26,10 @@ rules:
   - apiGroups: ['']
     resources: [pods]
     verbs: [get, list]
+  - apiGroups: ['']
+    resources: [configmaps]
+    resourceNames: [sms-runs] # the last 20 ended runs (../base/runs.yaml): read and merge-patch this one object only
+    verbs: [get, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
