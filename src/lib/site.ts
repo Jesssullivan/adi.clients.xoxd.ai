@@ -7,7 +7,7 @@ export const ADI_SMS_URL = 'https://github.com/Jesssullivan/adi-sms';
 export const RESUME_PDF = '/resume/jess_sullivan_resume.pdf';
 // The walkthrough video's YouTube id (unlisted), the one place it is set. Empty: no video renders on any page and
 // the site makes no request to YouTube.
-export const YOUTUBE_ID: string = 'As0pVxHbsZs';
+export const YOUTUBE_ID: string = 'oCGKfrHWBwk';
 
 export const NAV_LINKS: { href: string; label: string }[] = [
 	{ href: '/', label: 'Overview' },
