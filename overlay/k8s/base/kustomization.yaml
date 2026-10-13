@@ -1,0 +1,23 @@
+# The overlay server for adi.clients.xoxd.ai: Deployment and Service web take the tunnel's slot in the adi-sms
+# namespace (pod port 8080); its RBAC is ../rbac. Each demo run is three Jobs the server renders from the pinned core's
+# deploy/ templates, which the image carries; this directory holds no Job manifest. ../../grafana adds the pod that
+# graphs the runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: adi-sms
+resources:
+  - deployment.yaml
+  - service.yaml
+  - ../../grafana
+configMapGenerator:
+  - name: web # the server's settings, read as environment variables; P_MAX = 10: web, grafana, a run's queue and
+    # producer pods and 10 sender pods are the quota's 14 pods, so web rolls out with Recreate (deployment.yaml)
+    literals:
+      - P_MAX=10
+      - N_MAX=1000000
+      - M_MAX=100 # P_MAX x M_MAX = 1000 queue clients, under valkey's 10000
+      - MAKESPAN_S=600
+      - RATE_MAX=2000 # past capacity, P_MAX x M / E[tau] = 10 x 10 / 0.11 s = 900 msg/s, so backpressure shows
+      - PULL_SECRET=ghcr-pull # the imagePullSecrets name in every run pod

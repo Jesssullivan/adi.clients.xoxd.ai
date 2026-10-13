@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="pine" data-mode="dark">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content="Jess Sullivan, SMS Simulation Exercise (adi-sms): the deck and a live demo." />
+		<meta name="color-scheme" content="dark light" />
+		<meta name="robots" content="noindex, nofollow" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="16x16 32x32 48x48" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<!-- The first-paint heading and wordmark face. Inter 400 is
+		     preloaded by src/hooks.server.ts, because Vite hashes its path. -->
+		<link
+			rel="preload"
+			href="%sveltekit.assets%/fonts/FiraCodeNerdFontMono-Bold.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
+		/>
+		<!-- Pre-paint mode: dark by default, the stored choice otherwise (the
+		     xoxd.ai fouc shape, single pine theme), and the embed flag. -->
+		<script>
+			(function () {
+				var mode = 'dark';
+				try {
+					var stored = localStorage.getItem('color-mode');
+					if (stored === 'light' || stored === 'dark') mode = stored;
+				} catch (e) {
+					// localStorage unavailable: keep the default.
+				}
+				document.documentElement.setAttribute('data-mode', mode);
+				document.documentElement.style.colorScheme = mode;
+				document.documentElement.setAttribute('data-theme', 'pine');
+				// ?embed=1 (the deck's frames): [data-chrome] hides now, so its removal at hydration moves nothing.
+				if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.setAttribute('data-embed', '');
+			})();
+		</script>
+		<!-- The Hello Analog! interstitial (src/app.css), a pattern shared with my other sites: armed here, before first
+		     paint, on every full load of the home page without a fragment, and only with JS. It stores nothing and sets
+		     no cookie. Input or the end of its clock lifts it. Framed pages never arm it. -->
+		<script>
+			(function () {
+				var m = function (q) {
+					return window.matchMedia && matchMedia(q).matches;
+				};
+				if (m('(prefers-reduced-motion: reduce)') || m('(forced-colors: active)')) return;
+				if (window !== window.top || location.pathname !== '/' || location.hash) return;
+				var root = document.documentElement;
+				var lift = function () {
+					root.classList.remove('saturn-intro', 'saturn-intro-live');
+				};
+				root.classList.add('saturn-intro');
+				['wheel', 'touchstart', 'pointerdown', 'keydown'].forEach(function (t) {
+					addEventListener(t, lift, { capture: true, passive: true, once: true });
+				});
+				addEventListener('load', function () {
+					root.classList.add('saturn-intro-live');
+					setTimeout(lift, 3200);
+				});
+				setTimeout(lift, 8000); // a page whose load never ends is not veiled for long
+			})();
+		</script>
+		%sveltekit.head%
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>

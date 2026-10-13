@@ -1,0 +1,96 @@
+{
+  "uid": "sms",
+  "title": "SMS runs",
+  "tags": ["adi-sms"],
+  "editable": false,
+  "graphTooltip": 1,
+  "time": { "from": "now-5m", "to": "now" },
+  "timepicker": { "refresh_intervals": ["1s", "5s", "1m"] },
+  "refresh": "1s",
+  "timezone": "utc",
+  "schemaVersion": 41,
+  "version": 4,
+  "description": "The /demo runs, read from overlay/server.py /metrics every 1 s. /metrics serves a run's numbers only while it runs, and each query ends in `or vector(0)`, so every panel reads 0 at rest, never the last total. Run All follows the newest run; /demo opens an older run with var-run and its time range.",
+  "templating": {
+    "list": [
+      {
+        "name": "run",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(sms_parallelism, run)",
+        "refresh": 2,
+        "sort": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Queue depth and in flight",
+      "description": "Queued is XLEN minus XPENDING: messages waiting, at most C (the producer blocks there). In flight is XPENDING: messages a sender holds.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": {"unit": "short", "min": 0, "decimals": 0, "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}}, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(sms_depth{run=~\"$run\"}) or vector(0)", "legendFormat": "queued", "range": true },
+        { "refId": "B", "expr": "sum(sms_pending{run=~\"$run\"}) or vector(0)", "legendFormat": "in flight", "range": true }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Arrivals and completions (msg/s)",
+      "description": "lambda offered: the run's rate key, which the controller reads. lambda in: messages added per second (the producer's INCR made). lambda out: messages committed per second (totals done). The gap between offered and in is the backpressure.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": {"unit": "suffix: msg/s", "min": 0, "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}}, "overrides": [] },
+      "targets": [
+        { "refId": "C", "expr": "sum(sms_rate_offered{run=~\"$run\"}) or vector(0)", "legendFormat": "lambda offered", "range": true },
+        { "refId": "A", "expr": "sum(sms_rate_in{run=~\"$run\"}) or vector(0)", "legendFormat": "lambda in", "range": true },
+        { "refId": "B", "expr": "sum(sms_rate_out{run=~\"$run\"}) or vector(0)", "legendFormat": "lambda out", "range": true }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Busy senders",
+      "description": "Little's law: busy = lambda out times E[tau], the measured service time per message.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": { "defaults": {"unit": "short", "min": 0, "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}}, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(sms_busy{run=~\"$run\"}) or vector(0)", "legendFormat": "busy", "range": true }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Consumer pods",
+      "description": "Parallelism is what the controller set on the senders Job: ceil(lambda in E[tau] / M), clamped to 1..P_MAX. Running is the senders pods in phase Running.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": {"unit": "short", "min": 0, "decimals": 0, "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}}, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(sms_parallelism{run=~\"$run\"}) or vector(0)", "legendFormat": "parallelism", "range": true },
+        { "refId": "B", "expr": "sum(sms_consumers{run=~\"$run\"}) or vector(0)", "legendFormat": "running", "range": true }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Messages sent and failed",
+      "description": "The totals hash: each commit adds one message's Summary once, in the same script as its XACK.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": {"unit": "short", "min": 0, "decimals": 0, "custom": {"lineWidth": 2, "fillOpacity": 10, "showPoints": "auto"}}, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(sms_sent{run=~\"$run\"}) or vector(0)", "legendFormat": "sent", "range": true },
+        { "refId": "B", "expr": "sum(sms_failed{run=~\"$run\"}) or vector(0)", "legendFormat": "failed", "range": true }
+      ]
+    }
+  ]
+}

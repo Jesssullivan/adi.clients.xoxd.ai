@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 360" role="img" aria-labelledby="d10dfd-t d10dfd-d" font-family="inherit">
+  <title id="d10dfd-t">The review's diagram, redrawn with v2 names</title>
+  <desc id="d10dfd-d">Ovals are processes and rectangles are data. The Pipeline starts the Producer and M Senders. The Producer puts ids 0 to N-1 on a queue of at most C Messages and blocks at C. After id N-1 the Pipeline puts one None per sender. Each Sender gets a message, commits it to the done counter, and reports its latest Summary after every message to a slot of size 1. Every T the Monitor sums the slots and prints a snapshot line. The Pipeline is done when the committed count reaches N.</desc>
+  <defs>
+    <marker id="d10dfd-arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- processes -->
+  <g fill="none" stroke="currentColor" stroke-width="2">
+    <ellipse cx="120" cy="60" rx="85" ry="32"/>
+    <ellipse cx="120" cy="215" rx="85" ry="32"/>
+    <ellipse cx="804" cy="239" rx="80" ry="30" stroke-opacity="0.5"/>
+    <ellipse cx="796" cy="231" rx="80" ry="30" stroke-opacity="0.5"/>
+    <ellipse cx="788" cy="223" rx="80" ry="30" stroke-opacity="0.5"/>
+    <ellipse cx="780" cy="215" rx="80" ry="30" style="fill: var(--deck-bg, transparent)"/>
+    <ellipse cx="1018" cy="305" rx="80" ry="26"/>
+  </g>
+
+  <!-- data -->
+  <g fill="none" stroke-width="2" style="stroke: var(--deck-hl)">
+    <rect x="320" y="180" width="320" height="70"/>
+    <path d="M330 190H630V240H330z M380 190V240 M430 190V240 M480 190V240 M530 190V240 M580 190V240" stroke-width="1.5"/>
+    <rect x="946" y="209" width="160" height="44" stroke-opacity="0.5"/>
+    <rect x="938" y="201" width="160" height="44" stroke-opacity="0.5"/>
+    <rect x="930" y="193" width="160" height="44" style="fill: var(--deck-bg, transparent)"/>
+    <rect x="700" y="290" width="130" height="46"/>
+  </g>
+
+  <g text-anchor="middle" fill="currentColor">
+    <g font-size="20" font-weight="700">
+      <text x="120" y="67">Pipeline</text>
+      <text x="120" y="212">Producer</text>
+      <text x="780" y="222">Sender × M</text>
+      <text x="1018" y="312">Monitor</text>
+    </g>
+    <text x="120" y="233" font-size="14" style="fill: var(--deck-muted)">ids 0 .. N-1</text>
+    <g font-size="15">
+      <text x="355" y="220">end</text><text x="405" y="220">end</text><text x="455" y="220">msg</text>
+      <text x="505" y="220">msg</text><text x="555" y="220">msg</text><text x="605" y="220">msg</text>
+      <text x="1010" y="213">latest Summary</text>
+      <text x="765" y="310">committed</text>
+    </g>
+    <text x="1010" y="229" font-size="13" style="fill: var(--deck-muted)">one per sender, size 1</text>
+    <text x="765" y="326" font-size="13" style="fill: var(--deck-muted)">done counter</text>
+  </g>
+
+  <!-- flows -->
+  <g fill="none" stroke="currentColor" stroke-width="2" marker-end="url(#d10dfd-arr)">
+    <path d="M120 92V181"/>
+    <path d="M205 52H780V183"/>
+    <path d="M190 78L405 178" stroke-dasharray="6 5"/>
+    <path d="M205 215H318"/>
+    <path d="M642 215H698"/>
+    <path d="M858 205H928"/>
+    <path d="M760 266V288"/>
+    <path d="M1018 255V277"/>
+    <path d="M700 313H10V60H33"/>
+  </g>
+
+  <g font-size="14" style="fill: var(--deck-muted)">
+    <text x="130" y="142">start</text>
+    <text x="490" y="44" text-anchor="middle">start M</text>
+    <text x="335" y="112">end: one None per sender,</text>
+    <text x="335" y="130">after id N-1</text>
+    <text x="262" y="205" text-anchor="middle">put: blocks at C</text>
+    <text x="320" y="272">Queue: at most C Messages (id, body)</text>
+    <text x="670" y="205" text-anchor="middle">get</text>
+    <text x="893" y="176" text-anchor="middle">report after every message</text>
+    <text x="750" y="283" text-anchor="end">commit</text>
+    <text x="1028" y="271">every T: sum</text>
+    <text x="1018" y="350" text-anchor="middle">a snapshot line every T</text>
+    <text x="330" y="306">done: committed = N</text>
+  </g>
+</svg>

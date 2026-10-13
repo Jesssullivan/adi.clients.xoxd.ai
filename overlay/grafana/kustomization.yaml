@@ -1,0 +1,17 @@
+# Prometheus and Grafana run in one pod. Prometheus reads the web Service's /metrics (the server's
+# per-index progress) every 1 s, and Grafana draws dashboard sms from it at /grafana, which overlay/server.py relays
+# on the deck's hostname. Both keep their data in emptyDir, so a restart starts both empty.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - deployment.yaml
+configMapGenerator:
+  - name: prometheus
+    files:
+      - prometheus.yml
+  - name: grafana
+    files:
+      - grafana.ini
+      - datasources.yaml
+      - dashboards.yaml
+      - sms.json

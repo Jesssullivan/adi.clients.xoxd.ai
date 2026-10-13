@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>YouTubeLite fixture</title>
+		<!-- On the site Skeleton's classes size the window's resize corner; here it has no stylesheet. -->
+		<style>
+			[data-part='resize-trigger'] {
+				width: 16px;
+				height: 16px;
+			}
+		</style>
+	</head>
+	<body style="margin: 0">
+		<main style="width: 640px">
+			<p>Above the video.</p>
+			<div id="video"></div>
+			<p id="below">Below the video: a layout shift would move this line.</p>
+		</main>
+		<script type="module" src="./main.ts"></script>
+	</body>
+</html>

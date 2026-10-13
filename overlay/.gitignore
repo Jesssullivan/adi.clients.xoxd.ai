@@ -1,0 +1,4 @@
+# staged and built by just overlay-image
+.site/
+.image
+__pycache__/

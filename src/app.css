@@ -1,0 +1,568 @@
+@import 'tailwindcss';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+
+/* Skeleton 5's pine theme, the one the operator's blog uses, with the site's own two faces and square corners. */
+@import '@skeletonlabs/skeleton/themes/pine';
+
+/* Self-hosted fonts. Inter for the body; the patched FiraCode Nerd Font
+   Mono for headings and every code surface. Inter rides @fontsource through
+   Vite (hashed assets); the mono is served from static/fonts/, subset to
+   Latin plus the symbol blocks a page renders, without the four Nerd Font
+   icon blocks nothing renders. The theme's --typo-base--font-family and
+   --typo-heading--font-family name the two stacks. Every face is
+   font-display: swap, and the metric-adjusted local fallback faces below
+   make the swap a change of glyphs, not of layout. The first-paint faces are
+   preloaded: the Bold mono from src/app.html (a static path), Inter 400
+   through the preload filter in src/hooks.server.ts (a hashed asset). */
+@import '@fontsource/inter/latin-400.css';
+@import '@fontsource/inter/latin-500.css';
+@import '@fontsource/inter/latin-600.css';
+@import '@fontsource/inter/latin-700.css';
+
+/* Tailwind's font tokens, so the font-mono and font-sans utilities and
+   Skeleton's own code rule (base/typography.css reads --font-mono) paint the
+   same stacks the theme tokens name. */
+@theme {
+	--font-sans: 'Inter', 'Inter Fallback', system-ui, -apple-system, sans-serif;
+	--font-mono:
+		'FiraCode Nerd Font Mono', 'FiraCode Nerd Font Mono Fallback', ui-monospace, SFMono-Regular, Menlo, Monaco,
+		Consolas, monospace;
+}
+
+/* Tailwind v4 only generates utilities it can see at build time, and Skeleton's
+   component markup ships utility classes of its own (e.g. `size-4` on the
+   listbox/combobox/tree-view item indicators). Without this @source line those
+   utilities are silently never generated: the build stays green and the visual
+   surface breaks (house scars: bare `rounded` → 0 radius, `m-y-4` → no spacing).
+   Keep it pointing at the vendored dist. */
+@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
+@source not '../content';
+@source not '../docs';
+
+@font-face {
+	font-family: 'FiraCode Nerd Font Mono';
+	src:
+		local('FiraCodeNerdFontMono-Regular'),
+		url('/fonts/FiraCodeNerdFontMono-Regular.woff2') format('woff2');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'FiraCode Nerd Font Mono';
+	src:
+		local('FiraCodeNerdFontMono-Bold'),
+		url('/fonts/FiraCodeNerdFontMono-Bold.woff2') format('woff2');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+/* Metric-adjusted local fallbacks, the glorious.build pattern (its
+   src/app.css fallback faces): a local face re-shaped to the webfont's
+   metrics with fontaine-style size-adjust plus ascent, descent and line-gap
+   overrides, so the swap changes glyphs, not layout. The numbers were
+   computed from the shipped fonts' head, OS/2 and hmtx tables over a
+   frequency-weighted English lowercase sample against Liberation Sans and
+   Liberation Mono, which carry Arial's and Courier New's advance widths and
+   vertical metrics. Inter 4.001 (upem 2048, ascender 1984, descender 494)
+   over Arial; the mono (upem 1950, ascender 1800, descender 600, advance
+   1200) over Courier New. */
+@font-face {
+	font-family: 'Inter Fallback';
+	src: local('Arial'), local('Liberation Sans');
+	size-adjust: 108.13%;
+	ascent-override: 89.59%;
+	descent-override: 22.31%;
+	line-gap-override: 0%;
+}
+@font-face {
+	font-family: 'FiraCode Nerd Font Mono Fallback';
+	src: local('Courier New'), local('Liberation Mono');
+	size-adjust: 102.55%;
+	ascent-override: 90.01%;
+	descent-override: 30%;
+	line-gap-override: 0%;
+}
+
+/* Dark-mode strategy: data-mode attribute on <html>, set synchronously by the
+   FOUC-prevention script in src/app.html. Color pairs (bg-surface-100-900) use
+   the native light-dark() function which switches via document color-scheme. */
+@custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));
+
+[data-mode='light'] {
+	color-scheme: light;
+}
+[data-mode='dark'] {
+	color-scheme: dark;
+}
+
+/* ===== Semantic z-index scale =====
+   One ladder for every stacked surface: dropdown < sticky < modal-backdrop <
+   modal < toast < tooltip. Never an arbitrary 999/9999. Markup consumes the
+   tokens through the Tailwind v4 var shorthand (z-(--z-sticky)); scoped
+   component styles use var() directly. The 30/40 anchors match the values the
+   scaffold already shipped, so nothing shifts visually. Below-content layers
+   (the fixed brand background at -z-10) sit under the ladder by design. */
+[data-theme='pine'] {
+	--radius-base: 0;
+	--radius-container: 0;
+	--typo-base--font-family: 'Inter', 'Inter Fallback', system-ui, -apple-system, sans-serif;
+	--typo-base--line-height: 1.6;
+	--typo-heading--font-family: var(--font-mono);
+}
+
+:root {
+	--page-shell: min(100% - 2rem, 72rem);
+	--prose-measure: 66ch;
+	--section-rhythm: clamp(3rem, 6vw, 4rem);
+	--z-dropdown: 30;
+	--z-sticky: 40;
+	--z-modal-backdrop: 50;
+	--z-modal: 60;
+	--z-toast: 70;
+	--z-tooltip: 80;
+}
+
+/* ===== The site's own rules, under one cascade layer =====
+   Everything from here down is the site's CSS and lives in @layer
+   components, which Tailwind orders before utilities, so a utility class in
+   the markup always beats a site rule and nothing is silently defeated by an
+   unlayered selector.
+   Skeleton's component styles come in at layer(base), below this layer. The
+   tokens above (:root, [data-mode], @custom-variant) stay unlayered on
+   purpose: a token is declared, never contested. */
+@layer components {
+	/* ===== Body + global typography baseline =====
+	   Skeleton themes declare --typo-base/heading--font-family, but app code
+	   has to anchor body to that variable so prose actually picks up Inter. */
+	html {
+		overflow-x: clip;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+	}
+
+	body {
+		font-family: var(--typo-base--font-family);
+		font-feature-settings:
+			'cv02' 1,
+			'cv03' 1,
+			'cv04' 1,
+			'cv11' 1;
+		overscroll-behavior-y: none;
+	}
+
+	/* Refined heading scale with theme typography variables.
+	   The scaffold theme already declares --typo-heading--*; we tune sizes + tracking
+	   here so the visual hierarchy reads as a devtool launch surface (sharp,
+	   tight) rather than generic prose. This is the house scale: a heading in
+	   the markup carries no text-* or leading-* utility, because under
+	   @layer components a utility wins, out loud, and the inert
+	   ones that used to lose silently were deleted with the layering. */
+	h1,
+	.h1 {
+		font-size: clamp(2.5rem, 5vw + 1rem, 5rem);
+		line-height: 1.05;
+		letter-spacing: -0.025em;
+		font-weight: 700;
+	}
+
+	h2,
+	.h2 {
+		font-size: clamp(1.5rem, 2.5vw + 0.5rem, 2.25rem);
+		line-height: 1.15;
+		letter-spacing: -0.02em;
+		font-weight: 700;
+	}
+
+	h3,
+	.h3 {
+		font-size: 1.5rem;
+		line-height: 1.25;
+		letter-spacing: -0.015em;
+		font-weight: 600;
+	}
+
+	h4,
+	.h4 {
+		font-size: 1.25rem;
+		line-height: 1.3;
+		font-weight: 600;
+	}
+
+	/* Section anchor offset so #hash jumps land below the sticky AppBar.
+	   AppBar is ~56px tall at our spacing; 64px gives a small breathing gap. */
+	:where([id]) {
+		scroll-margin-top: 64px;
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		html {
+			scroll-behavior: auto;
+		}
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--typo-heading--font-family);
+	}
+
+	code,
+	kbd,
+	pre,
+	samp,
+	.font-mono {
+		font-family: var(--font-mono);
+		font-feature-settings:
+			'liga' 1,
+			'calt' 1;
+	}
+
+	/* Shiki-rendered code blocks: inherit our FiraCode Nerd Font Mono stack
+	   AND wrap rather than scroll. User constraint: no scrollbars inside any
+	   element, at any breakpoint. Long lines wrap on word boundaries; URLs
+	   and other unbreakable tokens use overflow-wrap: anywhere. */
+	pre.shiki {
+		padding: 0.875rem 1rem;
+		border-radius: 0.5rem;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		word-break: normal;
+		line-height: 1.55;
+		font-size: 0.8125rem;
+	}
+
+	/* No borders on the site's surfaces: the background gives enough contrast.
+	   The PDF and video windows keep Skeleton's shadow, so they float. */
+	[data-scope='floating-panel'][data-part='content'] {
+		border: 0;
+	}
+
+	/* Shiki dual-theme cascade.
+	   With `themes: { light, dark }` + `defaultColor: false`, Shiki emits
+	   inline `style="--shiki-light:#xxx; --shiki-dark:#yyy"` per token but
+	   does NOT apply the colors itself: the consuming CSS below walks the
+	   variables to actual `color` / `background-color`.
+	   Light is the default; data-mode='dark' switches to the dark palette. */
+	pre.shiki,
+	pre.shiki code,
+	pre.shiki span {
+		color: var(--shiki-light);
+		background-color: var(--shiki-light-bg);
+	}
+	[data-mode='dark'] pre.shiki,
+	[data-mode='dark'] pre.shiki code,
+	[data-mode='dark'] pre.shiki span {
+		color: var(--shiki-dark);
+		background-color: var(--shiki-dark-bg);
+	}
+	pre.shiki,
+	pre.shiki code,
+	pre.shiki span {
+		font-family: var(--font-mono) !important;
+		font-feature-settings:
+			'liga' 1,
+			'calt' 1 !important;
+	}
+
+	/* Inline code in prose stays compact; no card chrome. */
+	:not(pre) > code {
+		font-size: 0.875em;
+		padding: 0.1em 0.3em;
+		border-radius: 0.25rem;
+		background: color-mix(in oklch, var(--color-surface-200) 40%, transparent);
+	}
+	[data-mode='dark'] :not(pre) > code {
+		background: color-mix(in oklch, var(--color-surface-800) 50%, transparent);
+	}
+
+	/* Links in running text are blue (secondary), as on the deck and /demo; primary
+	   stays for the site's own chrome. */
+	.landing-links a {
+		color: var(--color-secondary-700);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	[data-mode='dark'] .landing-links a {
+		color: var(--color-secondary-300);
+	}
+
+	/* ===== Focus visibility =====
+	   Required for WCAG AA. */
+	:focus-visible {
+		outline: 2px solid var(--color-primary-500);
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	/* ===== Reduced motion =====
+	   Disable animations + transitions for users who request it. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	/* One page shell: the header inner and every route's <main> share
+	   --page-shell, so they align on one width at every viewport.
+	   e2e/page-shell.spec.ts measures them at 375, 768, 1024 and 1440 px. */
+	.site-header__inner,
+	.page-shell {
+		width: var(--page-shell);
+		margin-inline: auto;
+	}
+
+	.page-shell {
+		padding-block: var(--section-rhythm);
+	}
+
+	/* The prose measure: running text inside the shell wraps at
+	   --prose-measure. Scoped through :where() so any utility or component rule
+	   outranks it, and a card (Skeleton's .card, or a grid of card links marked
+	   data-prose-measure="none") keeps its own column width. */
+	.page-shell :where(p, li) {
+		max-width: var(--prose-measure);
+	}
+
+	.page-shell :where(.card, [data-prose-measure='none']) :where(p, li) {
+		max-width: none;
+	}
+
+	/* src/app.html sets data-embed before first paint on ?embed=1; the header and page intro that the
+	   client then removes take no space meanwhile, so the framed page does not shift. */
+	:root[data-embed] [data-chrome] {
+		display: none;
+	}
+
+	/* ===== Landing page ===== */
+	/* The order: the greeting, the three buttons, the "I love ..." text, the video. The portrait floats
+	   right inside a circle 1rem wider than it, and the text wraps around that circle, so no line reaches the portrait
+	   at any width. */
+	section[aria-labelledby='hi-title'] {
+		padding-top: clamp(1rem, 4vw, 3rem);
+	}
+	.reading-column + .reading-column.landing-cta {
+		margin-top: 1.5rem;
+	}
+	.landing-hero {
+		display: flow-root;
+	}
+	.landing-hero__portrait {
+		position: relative;
+		display: block;
+		float: right;
+		width: 7rem;
+		margin: 0 0 1rem 1rem;
+		border-radius: 9999px;
+		shape-outside: circle(50%) border-box;
+		shape-margin: 1rem;
+	}
+	.landing-hero__portrait img {
+		display: block;
+		width: 100%;
+		height: auto;
+		border-radius: 9999px;
+	}
+	/* The portrait's greeting: shown on hover and keyboard focus; the portrait opens the first slide. */
+	.landing-hero__portrait::after {
+		content: attr(data-tip);
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		right: 0;
+		padding: 0.25rem 0.5rem;
+		border-radius: 0.375rem;
+		font:
+			600 0.8rem/1.2 system-ui,
+			sans-serif;
+		white-space: nowrap;
+		color: var(--color-surface-50);
+		background: var(--color-surface-900);
+		opacity: 0;
+		transition: opacity 120ms ease;
+		pointer-events: none;
+	}
+	.landing-hero__portrait:hover::after,
+	.landing-hero__portrait:focus-visible::after {
+		opacity: 1;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.landing-hero__portrait::after {
+			transition: none;
+		}
+	}
+	@media (min-width: 768px) {
+		.landing-hero__portrait {
+			width: clamp(12rem, 22vw, 17rem);
+		}
+	}
+	/* The video sits centered in the column at the prose measure. Until YOUTUBE_ID is set its place is the poster's
+	   16:9 box, with no request. */
+	.landing-video {
+		max-width: var(--prose-measure);
+		margin-inline: auto;
+	}
+	.video-soon {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 16 / 9;
+		border-radius: 0.5rem;
+		border: 1px dashed var(--color-surface-500);
+		background: color-mix(in oklch, var(--color-surface-500) 12%, transparent);
+		font-weight: 600;
+	}
+
+	/* ===== Docs (src/lib/server/docs.ts) ===== */
+	/* One centered column: every section of the home page, and the pages under /docs. */
+	.reading-column {
+		max-width: 52rem;
+		margin-inline: auto;
+	}
+	.reading-column + .reading-column {
+		margin-top: var(--section-rhythm);
+	}
+	.reading-column > * + * {
+		margin-top: 1rem;
+	}
+	.doc-body > * + * {
+		margin-top: 1rem;
+	}
+	.doc-body :where(h2, h3, h4, h5) {
+		margin-top: 2rem;
+	}
+	.doc-body :where(h4, h5) {
+		font-size: 1.125rem;
+	}
+	.doc-body :where(ul, ol) {
+		padding-inline-start: 1.5rem;
+		list-style: disc;
+	}
+	.doc-body ol {
+		list-style: decimal;
+	}
+	.doc-body img {
+		max-width: 100%;
+		height: auto;
+		margin-inline: auto;
+	}
+	/* No scrollbar inside any element and no page overflow: code blocks and inline code wrap. */
+	.doc-body pre {
+		overflow-wrap: anywhere;
+	}
+	.doc-body :not(pre) > code {
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+	.page-shell .doc-body :where(p, li) {
+		max-width: none;
+	}
+
+	/* ===== Saturn interstitial =====
+	   src/app.html arms html.saturn-intro before first paint and adds .saturn-intro-live on load. On a 3 s clock the
+	   line beats twice in 1.4 s, rests, and fades with the veil over the last 0.9 s. It never takes input. The text
+	   carries the blog header's rainbow (jesssullivan.github.io, src/app.css, .hero-banner-description): the same
+	   eight stops at 90deg, sized 200% and shifted one width every 8 s. Reduced motion keeps the gradient still. */
+	.saturn-interstitial {
+		position: fixed;
+		inset: 0;
+		z-index: var(--z-modal-backdrop);
+		display: none;
+		place-content: center;
+		padding-inline: 1rem;
+		text-align: center;
+		pointer-events: none;
+		background: var(--color-surface-50);
+		font: 700 clamp(2.75rem, 11vw, 7rem) / 1.05 var(--font-mono);
+	}
+	[data-mode='dark'] .saturn-interstitial {
+		background: var(--color-surface-950);
+	}
+	html.saturn-intro .saturn-interstitial {
+		display: grid;
+	}
+	.saturn-interstitial > * {
+		opacity: 0;
+		background: linear-gradient(90deg, #ff6b6b, #ffa500, #ffd700, #4ecdc4, #45b7d1, #96c, #ff6b9d, #ff6b6b);
+		background-size: 200% auto;
+		-webkit-background-clip: text;
+		background-clip: text;
+		-webkit-text-fill-color: transparent;
+	}
+	@media (forced-colors: active) {
+		.saturn-interstitial > * {
+			-webkit-text-fill-color: CanvasText;
+			background: none;
+		}
+	}
+	html.saturn-intro-live .saturn-interstitial {
+		animation: saturn-lift 3s linear both;
+	}
+	html.saturn-intro-live .saturn-interstitial > * {
+		animation: saturn-beat 3s cubic-bezier(0.22, 1, 0.36, 1) both;
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		html.saturn-intro-live .saturn-interstitial > * {
+			animation:
+				saturn-beat 3s cubic-bezier(0.22, 1, 0.36, 1) both,
+				saturn-rainbow 8s linear infinite;
+		}
+	}
+	@keyframes saturn-rainbow {
+		to {
+			background-position: 200% center;
+		}
+	}
+	@keyframes saturn-lift {
+		70% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	@keyframes saturn-beat {
+		0% {
+			opacity: 0;
+			transform: scale(0.94);
+		}
+		8% {
+			opacity: 0.72;
+			transform: scale(1);
+		}
+		14% {
+			opacity: 1;
+			transform: scale(1.045);
+		}
+		21% {
+			opacity: 0.84;
+			transform: scale(0.99);
+		}
+		28% {
+			opacity: 1;
+			transform: scale(1.02);
+		}
+		46%,
+		70% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+}

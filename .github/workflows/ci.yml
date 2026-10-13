@@ -1,0 +1,126 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deck:
+    # The owner's self-hosted runners; a pull request from a fork never runs there.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && fromJSON('["ubuntu-24.04"]') || fromJSON('["self-hosted", "nix", "linux"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # every commit, for the gitleaks history scan
+      - if: runner.environment == 'github-hosted' # the self-hosted runner image has Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - name: One Nix build at a time # added to the runner's NIX_CONFIG; parallel builders were killed with signal 9
+        run: printf 'NIX_CONFIG<<EOF\n%s\nmax-jobs = 1\nEOF\n' "${NIX_CONFIG:-}" >>"$GITHUB_ENV"
+      - name: Gitleaks over every commit
+        run: nix develop --command just secrets-scan-git
+      - name: Gates, build, notes gate, leak scan and Playwright
+        run: nix develop --command bash -euo pipefail -c 'just setup && just ci'
+      - run: test -z "$(git status --porcelain)" # the gates write only ignored paths
+
+  # The overlay pins one Jesssullivan/adi-sms commit. With that repository's read-only deploy key in the
+  # ADI_SMS_DEPLOY_KEY secret this job fetches the pinned commit over SSH and runs `just overlay-check`; without it, it
+  # says so.
+  overlay:
+    # The owner's self-hosted runners; a pull request from a fork never runs there.
+    runs-on: ${{ github.event.pull_request.head.repo.fork && fromJSON('["ubuntu-24.04"]') || fromJSON('["self-hosted", "nix", "linux"]') }}
+    timeout-minutes: 30
+    env:
+      KEY: ${{ secrets.ADI_SMS_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.KEY != '' && runner.environment == 'github-hosted'
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+      - name: One Nix build at a time # added to the runner's NIX_CONFIG; parallel builders were killed with signal 9
+        run: printf 'NIX_CONFIG<<EOF\n%s\nmax-jobs = 1\nEOF\n' "${NIX_CONFIG:-}" >>"$GITHUB_ENV"
+      - if: env.KEY != ''
+        name: Overlay tests, fold, kustomizations and the rendered Job
+        run: |
+          eval "$(ssh-agent -s)" && ssh-add - <<<"$KEY"
+          mkdir -p ~/.ssh && echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
+          rev=$(nix develop --command jq -er '.nodes["adi-sms"].locked.rev' overlay/flake.lock)
+          ADI_SMS_INPUT="git+ssh://git@github.com/Jesssullivan/adi-sms?rev=$rev" nix develop --command just overlay-check
+      - if: env.KEY == ''
+        run: echo "::notice::ADI_SMS_DEPLOY_KEY is not set; run just overlay-check locally"
+
+  # main is production. A push to main that passes both gates is built, pushed and rolled out by `just deploy`. The
+  # runner joins the tailnet with the tags in TS_DEPLOY_TAGS through a Tailscale trust credential that accepts only
+  # this workflow on main in the production environment (GitHub OIDC; no stored tailnet or cluster secret), and
+  # kubectl reaches the cluster through the Tailscale operator's API server proxy, which impersonates a group that
+  # may change only Deployments, Services and ConfigMaps in namespace adi-sms. Until the environment variables
+  # exist, the job says so and skips.
+  deploy:
+    needs: [deck, overlay]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, nix, linux]
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write # push the image with the workflow token
+      id-token: write # the OIDC token Tailscale exchanges for this run's node key
+    env:
+      KEY: ${{ secrets.ADI_SMS_DEPLOY_KEY }}
+      TS_CLIENT_ID: ${{ secrets.TS_DEPLOY_CLIENT_ID }} # environment secrets, so the public logs mask them
+      TS_AUDIENCE: ${{ secrets.TS_DEPLOY_AUDIENCE }}
+      PROXY: ${{ secrets.TS_DEPLOY_PROXY }} # the operator proxy's tailnet name
+      TS_TAGS: ${{ secrets.TS_DEPLOY_TAGS }} # the tags the trust credential grants
+    steps:
+      - if: env.TS_CLIENT_ID == '' || env.PROXY == ''
+        run: echo "::notice::the production variables are not set yet; deploy with just deploy <context>"
+      - if: env.TS_CLIENT_ID != '' && env.PROXY != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: env.TS_CLIENT_ID != '' && env.PROXY != ''
+        name: One Nix build at a time # added to the runner's NIX_CONFIG; parallel builders were killed with signal 9
+        run: printf 'NIX_CONFIG<<EOF\n%s\nmax-jobs = 1\nEOF\n' "${NIX_CONFIG:-}" >>"$GITHUB_ENV"
+      - if: env.TS_CLIENT_ID != '' && env.PROXY != ''
+        name: Build, push and roll out
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          [ -n "$TS_TAGS" ] || { echo "::error::TS_DEPLOY_TAGS is not set in the production environment"; exit 1; }
+          eval "$(ssh-agent -s)" && ssh-add - <<<"$KEY"
+          mkdir -p ~/.ssh && echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" >> ~/.ssh/known_hosts
+          rev=$(nix develop --command jq -er '.nodes["adi-sms"].locked.rev' overlay/flake.lock)
+          export ADI_SMS_INPUT="git+ssh://git@github.com/Jesssullivan/adi-sms?rev=$rev" TS="$RUNNER_TEMP/ts.sock"
+          o=(--override-input adi-sms "$ADI_SMS_INPUT") # the overlay shell's pinned core, over SSH
+          ts() { nix develop ./overlay "${o[@]}" --command tailscale --socket="$TS" "$@"; }
+          kc() { nix develop ./overlay "${o[@]}" --command kubectl "$@"; }
+          # Build first: the build's memory peak never shares the runner with tailscaled, which joins only to push and roll out.
+          nix develop --command bash -euo pipefail -c 'just setup && just overlay-image'
+          nix develop ./overlay "${o[@]}" --command tailscaled --tun=userspace-networking --socks5-server=localhost:1055 \
+            --state=mem: --socket="$TS" >"$RUNNER_TEMP/tailscaled.log" 2>&1 &
+          for _ in $(seq 60); do [ -S "$TS" ] && break; sleep 1; done
+          ts up --client-id="$TS_CLIENT_ID" --audience="$TS_AUDIENCE" --advertise-tags="$TS_TAGS" \
+            --hostname="adi-deploy-$GITHUB_RUN_ID"
+          echo "::add-mask::$(ts status --json | nix develop --command jq -r '.MagicDNSSuffix // empty')" # the tailnet's DNS name stays out of the logs
+          ts configure kubeconfig "$PROXY"
+          ctx="$(kc config current-context)"
+          kc config set-cluster "$(kc config view -o jsonpath="{.contexts[?(@.name=='$ctx')].context.cluster}")" \
+            --proxy-url=socks5://localhost:1055
+          for a in "-n adi-sms get secrets" "-n kube-system get pods" "get namespaces"; do # the group's limits hold
+            { kc $a 2>&1 || :; } | grep -q Forbidden || { echo "kubectl $a is not forbidden"; exit 1; }
+          done
+          nix develop --command bash -euo pipefail -c 'just --no-deps deploy "$0"' "$ctx" # the image is built
+      - if: env.TS_CLIENT_ID != '' && env.PROXY != ''
+        name: Signed-out readback (302 to Access)
+        run: |
+          for p in / /demo /presenter/notes.json; do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' "https://adi.clients.xoxd.ai$p")" = 302 ] || { echo "$p is not 302"; exit 1; }
+          done

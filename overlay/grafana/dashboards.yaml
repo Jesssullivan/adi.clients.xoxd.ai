@@ -1,0 +1,9 @@
+# Grafana loads dashboard sms from sms.json in the ConfigMap, and viewers cannot change it.
+apiVersion: 1
+providers:
+  - name: sms
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

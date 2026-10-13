@@ -1,0 +1,31 @@
+{
+	"comment": [
+		"The hosts and mailboxes the deck may publish, read by scripts/lib/leak-scan.ts. The pattern rules are",
+		"gitleaks' defaults plus scripts/lib/leak-scan.toml."
+	],
+	"allowedHostsComment": [
+		"Every outbound host the built site may reference; the scanner adds the hosts content/ cites. svelte.dev,",
+		"tailwindcss.com and www.w3.org are toolchain and namespace pointers inside vendored chunks. i.ytimg.com (the",
+		"poster) and www.youtube-nocookie.com (the player) serve the walkthrough video (src/lib/components/YouTubeLite.svelte).",
+		"haskellforall.com, nauths.fr and www.youtube.com are the reading note at the top of the core's docs/02-design.svx.",
+		"creativecommons.org and purl.org are namespace pointers in the metadata of the ports' bench chart."
+	],
+	"allowedHosts": [
+		"adi.clients.xoxd.ai",
+		"creativecommons.org",
+		"docs.oracle.com",
+		"github.com",
+		"haskellforall.com",
+		"i.ytimg.com",
+		"nauths.fr",
+		"prng.di.unimi.it",
+		"purl.org",
+		"svelte.dev",
+		"tailwindcss.com",
+		"www.w3.org",
+		"www.youtube-nocookie.com",
+		"www.youtube.com",
+		"zimbry.blogspot.com"
+	],
+	"allowedMailboxes": []
+}

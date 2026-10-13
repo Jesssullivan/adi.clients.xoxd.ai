@@ -1,0 +1,66 @@
+# One server for adi.clients.xoxd.ai: the deck's static build, /presenter and its notes, and /demo. Container port
+# 8080 is the port the namespace's boundary NetworkPolicy admits from cloudflared. Runs live in the API as Jobs, so
+# replacing this pod loses nothing: the new pod adopts a running run on its first request. Recreate stops the old pod
+# first, so a rollout never needs a 15th pod of the quota and two pods never steer one run.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web
+    spec:
+      serviceAccountName: web
+      shareProcessNamespace: true # the pause container is PID 1, so SIGTERM stops the server at once
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: web
+          image: web # the hosted overlay pins a digest; the kind overlay names the loaded archive
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: POD_NAME # the server reads its own pod's image and gives it to every run pod
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          envFrom:
+            - configMapRef:
+                name: web
+          readinessProbe:
+            httpGet:
+              path: /healthz # the only page served without an Access token, with /metrics
+              port: http
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: notes # the speaker notes `just notes` writes; without them /presenter/notes.json is a 404
+              mountPath: /srv/notes
+              readOnly: true
+      volumes:
+        - name: notes
+          secret: { secretName: notes, optional: true }

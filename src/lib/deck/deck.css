@@ -1,0 +1,460 @@
+/* Deck theme for reveal.js 6 on the pine tokens. No reveal theme package is
+   imported: colour rides the Skeleton surface/primary pairs, so light and dark
+   follow <html data-mode>. Sized for a 1280x720 canvas (reveal scales it).
+   Unlayered on purpose so it outranks the site's @layer components rules.
+   One palette: primary for the deck's own chrome, secondary for links,
+   success for diagram emphasis. Red stays out of the code. */
+
+.deck-shell {
+	--deck-accent: var(--color-primary-600);
+	--deck-link: var(--color-secondary-700);
+	--deck-hl: var(--color-success-600);
+	--deck-muted: var(--color-surface-600);
+	--deck-fg: var(--color-surface-950);
+	--deck-bg: var(--color-surface-50);
+	--deck-panel: color-mix(in oklab, var(--color-surface-200) 55%, var(--deck-bg));
+	--deck-border: var(--color-surface-300);
+	position: fixed;
+	inset: 0;
+	background: var(--deck-bg);
+	color: var(--deck-fg);
+}
+
+[data-mode='dark'] .deck-shell {
+	--deck-accent: var(--color-primary-300);
+	--deck-link: var(--color-secondary-300);
+	--deck-hl: var(--color-success-300);
+	--deck-muted: var(--color-surface-400);
+	--deck-fg: var(--color-surface-50);
+	--deck-bg: var(--color-surface-950);
+	--deck-panel: color-mix(in oklab, var(--color-surface-800) 60%, var(--deck-bg));
+	--deck-border: var(--color-surface-700);
+}
+
+.reveal-viewport {
+	background: var(--deck-bg, var(--color-surface-50-950));
+}
+
+.deck-shell .reveal {
+	width: 100%;
+	height: 100%;
+	font-family: 'Inter', 'Inter Fallback', system-ui, sans-serif;
+	font-size: 25px;
+	line-height: 1.4;
+	color: var(--deck-fg);
+}
+
+.deck-shell .reveal .slides {
+	text-align: left;
+}
+
+.deck-shell .reveal .slides > section,
+.deck-shell .reveal .slides > section > section {
+	left: 0;
+	top: 0;
+	width: 100%;
+}
+
+.deck-shell .reveal .slides section {
+	box-sizing: border-box;
+	height: 100%;
+	padding: 26px 40px;
+	overflow: hidden;
+}
+
+/* Headings on the house mono. */
+.deck-shell .reveal :is(h1, h2, h3, h4) {
+	font-family: 'FiraCode Nerd Font Mono', 'FiraCode Nerd Font Mono Fallback', ui-monospace, monospace;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	line-height: 1.15;
+	margin: 0 0 0.45em;
+	color: var(--deck-fg);
+	text-transform: none;
+}
+.deck-shell .reveal h1 {
+	font-size: 2.05em;
+	color: var(--deck-accent);
+}
+/* One heading size on every slide, in px: a dense slide's 0.8em and the fit
+   guard's prose scaling no longer shrink its heading (they gave 38.75px,
+   29px and anything down to 64% of either across the deck). */
+.deck-shell .reveal h2 {
+	font-size: 34px;
+}
+.deck-shell .reveal h3 {
+	font-size: 1.15em;
+	color: var(--deck-accent);
+}
+.deck-shell .reveal h4 {
+	font-size: 1em;
+}
+
+.deck-shell .reveal p {
+	margin: 0 0 0.6em;
+}
+.deck-shell .reveal :is(ul, ol) {
+	margin: 0 0 0.6em 1.15em;
+	padding: 0;
+}
+.deck-shell .reveal ul {
+	list-style: disc;
+}
+.deck-shell .reveal ol {
+	list-style: decimal;
+}
+.deck-shell .reveal li {
+	margin: 0.18em 0;
+}
+.deck-shell .reveal li > :is(ul, ol) {
+	margin-top: 0.1em;
+	font-size: 0.92em;
+}
+.deck-shell .reveal a {
+	color: var(--deck-link);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+.deck-shell .reveal strong {
+	font-weight: 700;
+}
+.deck-shell .reveal blockquote {
+	margin: 0.4em 0;
+	padding: 0.3em 0.9em;
+	border-left: 4px solid var(--deck-accent);
+	background: var(--deck-panel);
+	font-style: italic;
+}
+.deck-shell .reveal :not(pre) > code {
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	font-size: 0.85em;
+	padding: 0.05em 0.3em;
+	background: var(--deck-panel);
+	border: 1px solid var(--deck-border);
+}
+/* Headings are already on the mono: a code span in one (`_send`) reads as part
+   of the heading, not as a chip, so every column's headings look alike. */
+.deck-shell .reveal :is(h1, h2, h3, h4) > code {
+	font: inherit;
+	padding: 0;
+	background: none;
+	border: 0;
+	color: inherit;
+}
+
+/* Title slide: the thesis sits in the middle of the canvas, not at its top. */
+.deck-shell .reveal .slides section[data-state~='title'] {
+	padding-top: 190px;
+}
+
+/* Dense technical slides. */
+.deck-shell .reveal section[data-state~='dense'],
+.deck-shell .reveal .slides section.dense {
+	font-size: 0.8em;
+}
+
+/* Tables */
+.deck-shell .reveal table {
+	border-collapse: collapse;
+	font-size: 0.78em;
+	margin: 0.4em 0 0.8em;
+	width: 100%;
+}
+.deck-shell .reveal :is(th, td) {
+	border-bottom: 1px solid var(--deck-border);
+	padding: 0.28em 0.55em;
+	text-align: left;
+	vertical-align: top;
+}
+.deck-shell .reveal th {
+	font-weight: 700;
+	border-bottom: 2px solid var(--deck-muted);
+}
+
+/* A code fence keeps its distance from the next line. */
+.deck-shell .reveal .slides section > pre {
+	margin: 0.2em 0 0.7em;
+}
+
+/* github-dark paints comments #6A737D on #24292E (3.0:1); the code excerpts
+   narrate through their comments, so dark mode lifts them to #959DA5 (5.3:1). */
+[data-mode='dark'] .deck-shell .reveal pre.shiki span[style*='--shiki-dark:#6A737D'] {
+	color: #959da5;
+}
+/* The github themes paint keywords red (#D73A49, #F97583), which reads as an
+   error on a slide; keywords take the theme's tertiary instead. */
+.deck-shell .reveal pre.shiki span[style*='--shiki-light:#D73A49'] {
+	color: var(--color-tertiary-500);
+}
+[data-mode='dark'] .deck-shell .reveal pre.shiki span[style*='--shiki-dark:#F97583'] {
+	color: var(--color-tertiary-200);
+}
+
+/* Code fences: shiki dual-theme css vars (see src/app.css).
+   Code is a fixed 13.5px on the 1280x720 canvas (about 13px on screen after
+   reveal's 0.97 scale), so the fit guard shrinks prose, never code. The box
+   height is a CSS fallback; RevealDeck sizes each pre to the space the slide
+   has left before the font fit runs. Long lines wrap. */
+.deck-shell .reveal pre {
+	width: 100%;
+	margin: 0;
+	box-shadow: none;
+	font-size: 13.5px;
+	line-height: 1.35;
+	max-height: 560px;
+	overflow: auto;
+	padding: 0.7em 0.9em;
+	border: 1px solid var(--deck-border);
+	text-align: left;
+	tab-size: 4;
+}
+.deck-shell .reveal pre code {
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	max-height: none;
+	padding: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	display: block;
+}
+
+/* Source chips */
+.deck-shell .reveal .src-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35em;
+	margin: 0.15em 0.4em 0.15em 0;
+	padding: 0.1em 0.55em;
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	font-size: 0.55em;
+	color: var(--deck-muted);
+	border: 1px solid var(--deck-border);
+	background: var(--deck-panel);
+	text-decoration: none;
+	vertical-align: middle;
+}
+/* A chip above a code fence is its caption: a block of its own, so no line box pads it. */
+.deck-shell .reveal .src-chip:has(+ pre) {
+	display: flex;
+	width: fit-content;
+	margin: 0.3em 0 0;
+}
+.deck-shell .reveal .slides section > .src-chip + pre {
+	margin: 0 0 0.4em;
+	padding-block: 0.45em;
+}
+.deck-shell .reveal .src-chip:hover {
+	color: var(--deck-link);
+	border-color: var(--deck-link);
+}
+.deck-shell .reveal .src-chip__icon {
+	color: var(--deck-link);
+}
+
+/* Diagrams and media */
+.deck-shell .reveal .diagram-wrap,
+.deck-shell .reveal .media {
+	margin: 0.3em 0;
+	text-align: center;
+}
+.deck-shell .reveal svg.diagram {
+	width: 100%;
+	height: auto;
+	max-height: 540px;
+	color: var(--deck-fg);
+}
+.deck-shell .reveal section[data-state~='dense'] svg.diagram {
+	max-height: 480px;
+}
+.deck-shell .reveal .media img {
+	max-width: 100%;
+	max-height: 520px;
+	margin: 0 auto;
+	border: 1px solid var(--deck-border);
+	object-fit: contain;
+}
+
+/* Math */
+.deck-shell .reveal .katex-block {
+	margin: 0.4em 0 0.6em;
+	font-size: 1.05em;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+.deck-shell .reveal .katex {
+	font-size: 1.05em;
+	/* KaTeX lets a line break after a relation ("λ =" / "min(...)"); on a
+	   slide an inline formula stays on one line. */
+	white-space: nowrap;
+}
+.deck-shell .reveal .katex-error {
+	color: var(--color-error-500);
+}
+
+/* reveal chrome: arrows sit small and faint at bottom-left, the slide number
+   small at top-right, so neither covers full-height content. Keyboard, touch
+   and the overview still navigate. */
+.deck-shell .reveal .controls {
+	color: var(--deck-accent);
+	left: 6px;
+	right: auto;
+	bottom: 6px;
+	/* the buttons are placed by right offsets of up to 10em: give the box that
+	   width so a left anchor keeps the whole cluster on screen */
+	width: 10.5em;
+	font-size: 6px;
+	opacity: 0.22;
+	transition: opacity 0.2s ease;
+}
+.deck-shell .reveal .controls:hover,
+.deck-shell .reveal .controls:focus-within {
+	opacity: 0.9;
+}
+.deck-shell .reveal .progress {
+	color: var(--deck-accent);
+	height: 4px;
+}
+.deck-shell .reveal .slide-number {
+	top: 6px;
+	right: 8px;
+	bottom: auto;
+	padding: 1px 6px;
+	opacity: 0.7;
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	font-size: 11px;
+	background: var(--deck-panel);
+	color: var(--deck-muted);
+}
+.deck-shell .reveal .slide-number a {
+	color: inherit;
+	text-decoration: none;
+}
+.deck-shell .reveal.overview .slides section {
+	outline: 1px solid var(--deck-border);
+}
+.deck-shell .reveal .slide-background {
+	background: var(--deck-bg);
+}
+
+.deck-home {
+	position: fixed;
+	top: 8px;
+	left: 10px;
+	z-index: 40;
+	padding: 2px 8px;
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	font-size: 12px;
+	color: var(--deck-muted);
+	background: var(--deck-panel);
+	border: 1px solid var(--deck-border);
+	opacity: 0.8;
+	text-decoration: none;
+}
+.deck-home:hover,
+.deck-home:focus-visible {
+	opacity: 1;
+	color: var(--deck-link);
+}
+
+/* Column.sub-slide / sub-slides-in-column, bottom-right, clear of reveal's controls. */
+.deck-number {
+	position: fixed;
+	right: 96px;
+	bottom: 10px;
+	z-index: 40;
+	padding: 2px 8px;
+	font-family: 'FiraCode Nerd Font Mono', ui-monospace, monospace;
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+	color: var(--deck-fg, currentColor);
+	background: var(--deck-panel);
+	border: 1px solid var(--deck-border);
+	opacity: 0.8;
+	pointer-events: none;
+}
+
+/* ::video: the walkthrough video's slot, filled by RevealDeck when src/lib/site.ts sets YOUTUBE_ID. */
+.deck-video {
+	width: 560px;
+	margin-top: 0.8em;
+}
+
+/* ::live: a lazy iframe on screen; in print and PDF one line with its title and link. */
+.deck-live {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+.deck-live__frame {
+	display: block;
+	width: 100%;
+	border: 1px solid var(--deck-border);
+	background: var(--deck-bg);
+}
+.deck-live__caption,
+.deck-live__print {
+	margin: 0;
+	font-size: 0.6em;
+	color: var(--deck-muted);
+}
+.deck-live a {
+	color: var(--deck-link);
+}
+.deck-live__print,
+html.print-pdf .deck-live__frame,
+html.print-pdf .deck-live__caption {
+	display: none;
+}
+html.print-pdf .deck-live__print {
+	display: block;
+}
+
+@media print {
+	.deck-home,
+	.deck-number,
+	.deck-live__frame,
+	.deck-live__caption {
+		display: none;
+	}
+	.deck-live__print {
+		display: block;
+	}
+}
+
+/* The title slide's headshot: a circle with a greeting on hover (00-title.md). */
+.deck-shell .reveal .deck-avatar {
+	position: relative;
+	float: right;
+	margin: 0 0 1rem 2rem;
+}
+.deck-shell .reveal .deck-avatar img {
+	width: 15rem;
+	height: 15rem;
+	margin: 0;
+	border-radius: 9999px;
+	object-fit: cover;
+}
+.deck-shell .reveal .deck-avatar::after {
+	content: attr(data-tip);
+	position: absolute;
+	top: calc(100% + 0.4rem);
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 0.2em 0.6em;
+	border-radius: 0.375rem;
+	font-size: 0.5em;
+	white-space: nowrap;
+	color: var(--color-surface-50);
+	background: var(--color-surface-900);
+	opacity: 0;
+	transition: opacity 120ms ease;
+	pointer-events: none;
+}
+.deck-shell .reveal .deck-avatar:hover::after {
+	opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+	.deck-shell .reveal .deck-avatar::after {
+		transition: none;
+	}
+}

@@ -1,0 +1,18 @@
+# The hosted cluster. The namespace, its ResourceQuota and NetworkPolicies, and the ghcr-pull Secret are owned
+# outside this repository; this overlay adds the web and grafana objects from ../base. `just deploy` pins the image
+# it has just pushed by digest, in a copy of this directory, so a deploy is always the source on main.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: adi-sms
+resources:
+  - ../base
+configMapGenerator:
+  - name: web # server.py verifies every request's Access JWT against this team's keys and the two app audiences
+    behavior: merge
+    literals:
+      - ACCESS_TEAM=https://sulliwood.cloudflareaccess.com
+      - ACCESS_AUD=eafc9671e77279abb8901c0bd72ece189ac8f4f628a58e696d4cd272b45e28ee,686b3092018c6942573a160df13e6633ff3f530afdbd408f5fc5299f059f43d8
+      - OWNER_EMAILS=jess@sulliwood.org,jess@xoxd.ai # Recent runs shows them who started or halted a run in full; others see j***@domain
+images:
+  - name: web
+    newName: ghcr.io/jesssullivan/adi-sms

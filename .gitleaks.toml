@@ -1,0 +1,4 @@
+title = "adi.clients.xoxd.ai gitleaks config"
+
+[extend]
+useDefault = true

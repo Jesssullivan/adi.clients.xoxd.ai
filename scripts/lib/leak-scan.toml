@@ -1,0 +1,60 @@
+# The second gitleaks pass over the build. The first is .gitleaks.toml, gitleaks' default secret rules. These rules do
+# not extend the defaults: the default allowlist drops matches such as /home/<user>/..., which a build must not carry.
+title = "what a public build must never carry"
+
+[[rules]]
+id = "secret-pem-block"
+description = "PEM private key or certificate block"
+regex = '''-----BEGIN [A-Z ]*(?:PRIVATE KEY|CERTIFICATE)-----'''
+
+[[rules]]
+id = "secret-ssh-key"
+description = "OpenSSH key material"
+regex = '''ssh-(?:rsa|ed25519) AAAA[0-9A-Za-z+/]{32,}'''
+
+# Wider than the default rules of the first pass, which skip example keys, known words and low-entropy values.
+[[rules]]
+id = "secret-cloud-access-key"
+description = "cloud provider access key id"
+regex = '''\b(?:AKIA|ASIA)[0-9A-Z]{16}\b'''
+
+[[rules]]
+id = "secret-forge-token"
+description = "code-forge or chat access token"
+regex = '''\b(?:ghp_[0-9A-Za-z]{36}|github_pat_[0-9A-Za-z_]{22,}|glpat-[0-9A-Za-z_-]{20}|xox[abprs]-[0-9A-Za-z-]{10,})\b'''
+
+[[rules]]
+id = "secret-json-web-token"
+description = "signed JSON Web Token"
+regex = '''\beyJ[0-9A-Za-z_-]{10,}\.eyJ[0-9A-Za-z_-]{10,}\.[0-9A-Za-z_-]{10,}\b'''
+
+[[rules]]
+id = "secret-assignment"
+description = "credential-shaped assignment"
+regex = '''(?i)\b(?:api[_-]?key|secret[_-]?key|access[_-]?token|client[_-]?secret|password|passwd)\b\s*[:=]\s*["'][^"'\s]{12,}["']'''
+
+[[rules]]
+id = "kubeconfig-fragment"
+description = "kubeconfig or cluster credential fragment"
+regex = '''(?i)\b(?:client-certificate-data|client-key-data|certificate-authority-data|current-context|kubeconfig|serviceaccount/token)\b'''
+
+# Case-sensitive: a hostname in a built page is lowercase, and minified code such as e.INTERNAL is not a hostname.
+[[rules]]
+id = "internal-hostname"
+description = "cluster-local, tailnet, or otherwise private hostname"
+regex = '''\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:svc|cluster\.local|ts\.net|internal|intranet|lan|home\.arpa)\b'''
+
+[[rules]]
+id = "private-network-address"
+description = "RFC1918, loopback, link-local, or CGNAT address"
+regex = '''\b(?:10(?:\.\d{1,3}){3}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2}|127(?:\.\d{1,3}){3}|169\.254(?:\.\d{1,3}){2}|100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])(?:\.\d{1,3}){2})\b'''
+
+[[rules]]
+id = "source-map-or-dev-artifact"
+description = "source map or developer-only artefact leaked into the public build"
+regex = '''sourceMappingURL|//# sourceURL|\bnode_modules/'''
+
+[[rules]]
+id = "developer-filesystem-path"
+description = "absolute path from a developer or CI machine"
+regex = '''(?i)(?:/Users/[a-z0-9._-]+|/home/[a-z0-9._-]+|/private/var/[a-z0-9._/-]+|/root/|[A-Z]:\\Users\\)'''

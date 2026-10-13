@@ -1,0 +1,10 @@
+# Prometheus scrapes overlay/server.py's /metrics through the web Service every 1 s. A hosted run lasts about 15 s,
+# so a 5 s scrape gave it three samples.
+global:
+  scrape_interval: 1s
+  scrape_timeout: 1s
+scrape_configs:
+  - job_name: web
+    follow_redirects: false # after the close-down every path answers 302 to GitHub
+    static_configs:
+      - targets: [web:80]

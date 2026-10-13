@@ -1,0 +1,12 @@
+# Grafana queries the Prometheus container in its own pod.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://127.0.0.1:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 1s # the scrape interval, so a query's step can be 1 s

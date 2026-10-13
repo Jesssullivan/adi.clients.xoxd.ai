@@ -1,0 +1,12 @@
+[project]
+name = "adi-overlay"
+version = "0"
+description = "What overlay/server.py and its tests import beyond the pinned adi-sms"
+requires-python = ">=3.15"
+dependencies = ["pyjwt[crypto]>=2.15"] # server.py checks the Access JWT
+
+[dependency-groups]
+dev = ["pyyaml>=6.0.3"] # test_server.py reads the rendered Jobs
+
+[tool.uv]
+package = false

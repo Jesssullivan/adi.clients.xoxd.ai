@@ -1,0 +1,17 @@
+node_modules/
+.svelte-kit/
+build/
+test-results/
+playwright-report/
+.direnv/
+result
+# the adi-sms clone `just repin` keeps
+/.cache/
+.env
+.DS_Store
+# the speaker notes never live here, and `just deck` fails while content/notes/ exists
+/content/notes/
+# the speaker notes `just deck` writes from a directory outside this repo
+/overlay/notes.json
+# `just deck` copies the media slides use here
+/static/deck-media/

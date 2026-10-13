@@ -1,0 +1,11 @@
+# The ServiceAccounts and the server's Role and RoleBinding. They sit outside ../hosted so the deploy job, whose group
+# may change only Deployments, Services and ConfigMaps, never applies them: `just deploy` applies this directory only
+# from an operator shell, and the kind overlay includes it.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: adi-sms # without it `kubectl apply -k` lands in the context's namespace
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: adi-sms
+resources:
+  - rbac.yaml

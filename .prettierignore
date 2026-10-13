@@ -1,0 +1,10 @@
+build
+.svelte-kit
+node_modules
+static
+content
+overlay
+*.md
+pnpm-lock.yaml
+flake.lock
+src/lib/generated

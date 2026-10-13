@@ -1,0 +1,20 @@
+# The kind rehearsal: the web objects plus local copies of what the hosted namespace already has (Pod Security
+# restricted, the ResourceQuota, the boundary NetworkPolicy and a ghcr-pull Secret). The image is the archive
+# `just overlay-kind` loads into the node. The API-server egress policy is written by overlay/kind.sh, because it
+# names this cluster's endpoint address.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: adi-sms
+resources:
+  - namespace.yaml
+  - ../base
+  - ../rbac
+configMapGenerator:
+  - name: web # kind has no Cloudflare Access in front, so the server's JWT check is off here only
+    behavior: merge
+    literals:
+      - ACCESS_AUD=off
+images:
+  - name: web
+    newName: ghcr.io/jesssullivan/adi-sms
+    newTag: site

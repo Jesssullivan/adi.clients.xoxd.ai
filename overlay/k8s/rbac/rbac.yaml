@@ -1,0 +1,40 @@
+# The server creates and reads each demo run's three Jobs (queue, producer, senders) and patches the senders Job's
+# parallelism, the controller's one action, in its own namespace only. It reads their pods (the queue pod's IP, the
+# senders) and its own pod, to give every run pod its image. No delete verb: each Job's ttlSecondsAfterFinished removes
+# it and its pods. Run pods use the namespace's default ServiceAccount, which this Role does not bind.
+# Grafana's pod runs as its own ServiceAccount, bound to nothing and with no token.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: web
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [create, get, list, patch]
+  - apiGroups: ['']
+    resources: [pods]
+    verbs: [get, list]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: web
+subjects:
+  - kind: ServiceAccount
+    name: web
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: web
