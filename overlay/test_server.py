@@ -13,6 +13,7 @@ import tempfile
 import threading
 import time
 import unittest
+import warnings
 from http.server import BaseHTTPRequestHandler
 import urllib.error
 import urllib.parse
@@ -51,8 +52,16 @@ def parse(text: str) -> dict:  # a rendered Job as the API would return it
 class Fake:  # the API paths the server calls, answered from dicts
     def __init__(self):
         self.jobs, self.pods, self.posted, self.patched = {}, {}, [], []
+        self.cm = {"metadata": {"name": "sms-runs"}}  # as the overlay creates it, with no data; an error: missing
 
     def __call__(self, method, path, body="", ctype=""):
+        if path.endswith("/configmaps/sms-runs"):  # a merge patch of its data, or a read
+            if isinstance(self.cm, Exception):
+                raise self.cm
+            if method == "PATCH":
+                assert ctype == "application/merge-patch+json", ctype
+                self.cm.setdefault("data", {}).update(json.loads(body)["data"])
+            return self.cm
         if method == "POST":
             self.posted.append(body)
             return self.jobs.setdefault((job := parse(body))["metadata"]["name"], job)
@@ -434,6 +443,67 @@ class Server(unittest.TestCase):
         with mock.patch.object(server, "kube", wraps=self.k8s) as k:  # a name that is not a run reads sms-*-senders
             self.assertEqual(self.req("GET", "/demo/api/state?run=other")[0], 502)
             self.assertTrue(k.call_args_list[-1].args[1].endswith("/jobs/sms-other-senders"))
+
+    def finish(self, headers=None):  # one run from POST to SHUTDOWN, as its started_by and its pipeline see it
+        run, shutdown = "sms-20261010-080000", self.enterContext(mock.patch.object(redis.Redis, "shutdown"))
+        self.k8s.pods[f"{run}-queue"] = [pod("q", ip="127.0.0.1")]
+        status, _, _ = self.req("POST", "/demo/api/run", b'{"n": 50, "interval_ms": 100}', {"Content-Type": "application/json"} | (headers or {}))
+        self.assertEqual(status, 201)
+        for _ in range(100):
+            if server.RUNS[run]["phase"] == "Running" and self.k8s.posted[2:]:
+                break
+            time.sleep(0.05)
+        self.k8s.jobs[f"{run}-senders"] = parse(self.k8s.posted[2]) | {"status": {"conditions": [{"type": "Complete", "status": "True"}]}}
+        self.db.hset("totals", mapping=run_range(server.RUNS[run]["cfg"], 0, 50)._asdict() | {"done": 50})
+        for _ in range(100):
+            if shutdown.called:
+                break
+            time.sleep(0.05)
+        self.assertEqual((server.RUNS[run]["phase"], server.RUNS[run]["check"]), ("Complete", True))
+        return run
+
+    def test_the_last_20_ended_runs_outlive_a_restart_in_configmap_sms_runs(self):
+        older = [{"run": f"sms-20261009-{i:06d}", "created": "2026-10-09T00:00:00+00:00", "phase": "Halted", "P": 1, "params": D,
+                  "started_by": "guest@example.com", "halted_by": "jess@example.org"} for i in range(20, 0, -1)]
+        stale = older[0] | {"run": "sms-20261010-080000", "phase": "Failed"}  # this run, kept once before (an adopted rerun)
+        self.k8s.cm["data"] = {"runs": json.dumps([stale] + older)}  # its new view replaces it and pushes the oldest out
+        with mock.patch.object(server, "AUD", ["guest", "owner"]), mock.patch.object(server, "TEAM", TEAM), \
+                mock.patch.object(pyjwt.PyJWKClient, "fetch_data", return_value=JWKS), mock.patch.object(server, "OWNERS", {"jess@example.org"}):
+            as_ = lambda email: {"Cf-Access-Jwt-Assertion": jwt("guest", email=email)}
+            run = self.finish(as_("jess@example.org"))
+            kept = json.loads(self.k8s.cm["data"]["runs"])
+            self.assertEqual([k["run"] for k in kept], [run] + [o["run"] for o in older[:19]])  # newest first, 20 at most
+            self.assertEqual((kept[0]["phase"], kept[0]["check"], kept[0]["final"], kept[0]["started_by"], kept[0]["params"]["n"]),
+                             ("Complete", True, run_range(server.RUNS[run]["cfg"], 0, 50)._asdict(), "jess@example.org", 50))
+            self.assertLessEqual(set(kept[0]), set(server.SHOWN))  # only what a page sees: no client, config, image or pod address
+            server.RUNS.clear()  # a web restart: its senders Job is still there, and its last view in sms-runs wins over it
+            listed = lambda email: json.loads(self.req("GET", "/demo/api/runs", headers=as_(email))[2])
+            self.assertEqual([(x["run"], x["check"]) for x in listed("x@y.example")[:1]], [(run, True)])
+            self.k8s.jobs.clear()  # its TTL removed it: the runs list and the state still come from sms-runs
+            self.assertEqual([x["run"] for x in listed("jess@example.org")], [k["run"] for k in kept])
+            self.assertEqual([(x["started_by"], x["halted_by"]) for x in listed("jess@example.org")[1:2]], [("guest@example.com", "jess@example.org")])
+            self.assertEqual({(x["started_by"], x.get("halted_by")) for x in listed("x@y.example")},
+                             {("j***@example.org", None), ("g***@example.com", "j***@example.org")})  # masked to anyone else
+            s = json.loads(self.req("GET", f"/demo/api/state?run={run}", headers=as_("x@y.example"))[2])
+            self.assertEqual((s["phase"], s["check"], s["started_by"]), ("Complete", True, "j***@example.org"))
+            self.assertEqual(json.loads(self.req("GET", "/demo/api/state", headers=as_("x@y.example"))[2])["run"], run)
+
+    def test_a_missing_sms_runs_configmap_only_loses_the_history(self):
+        self.k8s.cm = missing = urllib.error.HTTPError("u", 404, "nf", {}, None)
+        self.addCleanup(missing.close)
+        with warnings.catch_warnings(record=True) as said:
+            warnings.simplefilter("default")
+            self.assertEqual((server.recent(), server.recent()), (None, None))
+        self.assertEqual([str(w.message) for w in said], ["ConfigMap sms-runs is missing or unreadable, so the runs list has no history"])
+        self.k8s.cm = {"data": {"runs": "not json"}}
+        with warnings.catch_warnings(record=True):
+            self.assertIsNone(server.recent())
+            self.k8s.cm = missing
+            run = self.finish()  # the run ends as before
+            self.assertEqual([x["run"] for x in json.loads(self.req("GET", "/demo/api/runs")[2])], [run])
+            server.RUNS.clear()
+            self.k8s.jobs.clear()
+            self.assertEqual(json.loads(self.req("GET", "/demo/api/runs")[2]), [])  # no history, no error
 
     def test_a_running_run_from_another_web_pod_is_adopted_finished_and_drained(self):
         run, shutdown = "sms-20261009-120000", self.enterContext(mock.patch.object(redis.Redis, "shutdown"))

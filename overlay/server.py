@@ -2,7 +2,7 @@
 queue, a producer and the senders, whose parallelism this server's controller sets), their progress at /metrics for
 Prometheus, and /grafana relayed to the overlay's Grafana."""
 
-import contextlib, functools, http.client, json, math, mimetypes, os, re, ssl, threading, time, urllib.parse, urllib.request  # noqa: E401
+import contextlib, functools, http.client, json, math, mimetypes, os, re, ssl, threading, time, urllib.parse, urllib.request, warnings  # noqa: E401
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -14,11 +14,11 @@ from adi_sms.pipeline import mean_tau_s
 ENV = os.environ.get
 DECK, NOTES = Path(ENV("ADI_DECK", "/srv/deck")).resolve(), Path(ENV("ADI_NOTES", "/srv/notes/notes.json"))
 DEPLOY = Path(ENV("ADI_DEPLOY", "/deploy"))  # the pinned core's queue.yaml, producer.yaml and senders.yaml
-SPEC, SA = Path(FATE).with_name("spec.json"), Path("/var/run/secrets/kubernetes.io/serviceaccount")
+SPEC, SA, TYPES = Path(FATE).with_name("spec.json"), Path("/var/run/secrets/kubernetes.io/serviceaccount"), mimetypes.MimeTypes()
 CLOSE_AT, AFTER_CLOSE = datetime(2026, 10, 26, 21, tzinfo=UTC).timestamp(), "https://github.com/Jesssullivan"
 CAP = {k: int(ENV(k, d)) for k, d in (("P_MAX", 10), ("M_MAX", 100), ("N_MAX", 10**6), ("MAKESPAN_S", 600), ("RATE_MAX", 2000))}
 QPORT = 6379  # every queue pod's valkey-server port
-JOBS, PODS, TYPES = "/apis/batch/v1/namespaces/{ns}/jobs", "/api/v1/namespaces/{ns}/pods", mimetypes.MimeTypes()
+JOBS, PODS, KEPT = "/apis/batch/v1/namespaces/{ns}/jobs", "/api/v1/namespaces/{ns}/pods", "/api/v1/namespaces/{ns}/configmaps/sms-runs"
 LOCK, RUNS = threading.Lock(), {}  # one create, rate, scale, halt or scaling patch at a time; run -> its latest view
 SHOWN = ("run", "created", "phase", "error", "P", "floor", "rate", "params", "depth", "pending", "lambda_offered", "lambda_in",
          "lambda_out", "busy", "tau_ms", "totals", "made", "consumers", "final", "check", "started_by", "halted_by")  # state()
@@ -73,12 +73,17 @@ def describe(job: dict) -> dict:  # a run from before this server started, read 
             "final": None, "started_by": a.get("adi-sms/started-by"), "halted_by": a.get("adi-sms/halted-by"),
             "params": {f: int(x[1]) for f in PARAMS if (x := re.search(rf"--{f.replace('_', '-')}=(\d+)", words))}}
 
-def runs() -> list[dict]:  # newest first: this server's runs as their pipelines see them, older ones from the API
+def runs() -> list[dict]:  # newest first, a row a run: as its pipeline here sees it, else its last view in sms-runs, else its senders Job
     items = kube("GET", JOBS)["items"]
     old = [describe(j) for j in items if re.fullmatch(r"sms-[\d-]+-senders", j["metadata"]["name"])]
     for j in (j for j in old if j["phase"] == "Running" and j["run"] not in RUNS):  # one another web pod started
         adopt(j, next(i for i in items if i["metadata"]["name"] == j["run"] + "-senders"))
-    return sorted([view(r) for r in RUNS.values()] + [j for j in old if j["run"] not in RUNS], key=lambda j: j["run"], reverse=True)
+    return sorted({j["run"]: j for j in (*old, *(recent() or []), *map(view, RUNS.values()))}.values(), key=lambda j: j["run"], reverse=True)
+
+def recent() -> list[dict] | None:  # the last 20 ended runs, newest first, as pipeline() kept them in ConfigMap sms-runs
+    with contextlib.suppress(Exception):  # its manifest has no data, so a deploy leaves them in place
+        return json.loads(kube("GET", KEPT).get("data", {}).get("runs", "[]"))
+    warnings.warn("ConfigMap sms-runs is missing or unreadable, so the runs list has no history")  # Python prints it once
 
 def adopt(d: dict, job: dict) -> None:  # resume its control steps here, so it ends, drains and stops blocking new runs
     c = Config(**{f: v["default"] for f, v in PARAMS.items()} | d["params"])
@@ -142,7 +147,9 @@ def pipeline(run: str) -> None:  # the queue's address, the producer and the sen
         raise TimeoutError(f"the run did not finish within {2 * CAP['MAKESPAN_S']} s")
     except Exception as e:  # the view says why
         r |= {"phase": "Failed", "error": f"{type(e).__name__}: {e}"}
-    finally:
+    finally:  # sms-runs keeps this run's last view and the 19 runs before it; if recent() is None, nothing is written
+        with LOCK, contextlib.suppress(Exception):
+            kube("PATCH", KEPT, json.dumps({"data": {"runs": json.dumps([view(r)] + [k for k in recent() if k["run"] != run][:19])}}), "application/merge-patch+json")
         "db" in r and drain(run)
 
 def tick(run: str) -> bool:  # one control step: read the queue, the totals and the snapshots; scale; True at N done
@@ -196,12 +203,12 @@ def patch(run: str, p: int, **who: str) -> None:  # parallelism (more pods start
 
 view = lambda r: {k: r[k] for k in SHOWN if k in r}  # what a page sees: no client, config, image or pod address
 
-def state(run: str) -> dict:  # this server's view of the run, else the senders Job of a run from before it started
+def state(run: str) -> dict:  # this server's view of the run, else the one runs() lists, else the run's senders Job
     run = run or next(iter(runs()), {}).get("run") or "sms--"
-    run in RUNS or runs()  # adopts a Running run another web pod started, so an open page's polls bring back its controller
+    listed = {} if run in RUNS else {j["run"]: j for j in runs()}  # runs() adopts a run another web pod started
     if run in RUNS:
         return view(RUNS[run])
-    return describe(kube("GET", f"{JOBS}/{urllib.parse.quote('sms-' + run.removeprefix('sms-') + '-senders', safe='')}"))
+    return listed.get(run) or describe(kube("GET", f"{JOBS}/{urllib.parse.quote('sms-' + run.removeprefix('sms-') + '-senders', safe='')}"))
 
 def metrics() -> str:  # the running runs in Prometheus text format: at rest no series holds a run's last numbers
     if not (rs := [r for r in RUNS.values() if r["phase"] == "Running"]):

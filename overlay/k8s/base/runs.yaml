@@ -1,0 +1,6 @@
+# Recent runs on /demo: server.py keeps the last 20 ended runs here, newest first, as one JSON list under data.runs.
+# This manifest has no data, so `kubectl apply` creates the ConfigMap once and later applies leave the runs in place.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sms-runs
