@@ -189,13 +189,6 @@
 
 <main class="page-shell space-y-3" data-prose-measure="none">
 	<h1 class="h3">adi-sms demo</h1>
-	<p class="text-surface-600-400">
-		Each run is three Kubernetes Jobs: a Valkey queue pod, a producer that adds N messages at the rate λ, and P sender
-		pods of M senders each that take, send and commit them. Every T the server reads the queue and sets P to ⌈λ·E[τ]/M⌉
-		for the offered λ (Little's law), and adds a pod while the queue holds C. The gap between λ offered and λ in is the
-		backpressure. At N done it compares the committed total with the pure fold. Halt stops the run on the cluster. The
-		Grafana tab graphs the same run.
-	</p>
 	{#if ready}
 		<!-- The deck slide frames this same page; inside its frame the page scrolls. -->
 		<details bind:open>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { mount, onMount, unmount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import YouTubeLite from '$lib/components/YouTubeLite.svelte';
 	import { YOUTUBE_ID } from '$lib/site';
 	import 'reveal.js/reveal.css';
@@ -68,8 +69,8 @@
 				progress: true,
 				// Numbering is the .deck-number badge below (n / total, n.v on a subslide), not reveal's.
 				slideNumber: false,
-				overview: true,
-				keyboard: true,
+				overview: false,
+				keyboard: { 27: () => void goto('/') },
 				// Keys inside the PDF viewer and the video are theirs: arrows and space there do not change slides.
 				keyboardCondition: (e: KeyboardEvent) =>
 					!(e.target as Element | null)?.closest?.('[data-pdf-viewer], .deck-video'),

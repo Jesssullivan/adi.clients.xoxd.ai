@@ -99,6 +99,8 @@ const lineStyle = (page: Page) =>
 		});
 
 test('the interstitial line flows in the blog header rainbow, 8 s a cycle', async ({ page }) => {
+	await page.clock.install();
+	await page.clock.pauseAt(Date.now() + 1000); // the 3.2 s lift never fires, so a slow runner cannot miss the line
 	await page.goto('/');
 	await expect(page.locator('html')).toHaveClass(/saturn-intro-live/);
 	expect(await lineStyle(page)).toEqual({
