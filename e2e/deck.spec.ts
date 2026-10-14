@@ -51,6 +51,12 @@ test('/deck boots reveal.js with one horizontal column per content/sections file
 	test.info().annotations.push({ type: 'deck-shape', description: JSON.stringify(shape) });
 });
 
+test('Esc on the deck goes to the home page', async ({ page }) => {
+	await openDeck(page);
+	await page.keyboard.press('Escape');
+	await expect(page).toHaveURL('/');
+});
+
 test('the right arrow walks every slide in file order', async ({ page }) => {
 	await openDeck(page);
 	const shape = await stackShape(page);

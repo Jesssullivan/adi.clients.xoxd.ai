@@ -291,8 +291,8 @@
 }
 
 /* reveal chrome: arrows sit small and faint at bottom-left, the slide number
-   small at top-right, so neither covers full-height content. Keyboard, touch
-   and the overview still navigate. */
+   small at top-right, so neither covers full-height content. Keyboard and touch
+   still navigate. */
 .deck-shell .reveal .controls {
 	color: var(--deck-accent);
 	left: 6px;
@@ -327,9 +327,6 @@
 .deck-shell .reveal .slide-number a {
 	color: inherit;
 	text-decoration: none;
-}
-.deck-shell .reveal.overview .slides section {
-	outline: 1px solid var(--deck-border);
 }
 .deck-shell .reveal .slide-background {
 	background: var(--deck-bg);

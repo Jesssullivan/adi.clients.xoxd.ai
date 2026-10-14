@@ -45,7 +45,7 @@ test('Esc still closes the viewer after Maximize and Restore', async ({ page }) 
 	await expect(viewer(page)).toHaveCount(0);
 });
 
-test('the close slide opens the resume in the viewer, and Esc does not open the overview', async ({ page }) => {
+test('the close slide opens the resume in the viewer, and Esc closes only the viewer', async ({ page }) => {
 	await page.goto('/deck');
 	await expect(page.locator('.reveal.ready')).toBeAttached({ timeout: 30_000 });
 	await page.keyboard.press('End');
@@ -56,7 +56,7 @@ test('the close slide opens the resume in the viewer, and Esc does not open the 
 		if (stage) await page.getByRole('button', { name: stage }).click();
 		await page.keyboard.press('Escape');
 		await expect(viewer(page)).toHaveCount(0);
-		await expect(page.locator('.reveal.overview')).toHaveCount(0);
+		await expect(page).toHaveURL(/\/deck/);
 		await expect(link).toBeFocused();
 	}
 });

@@ -6,9 +6,6 @@ Hi there! This repository contains the live demo and slide deck for the SMS Simu
 The deck is a static SvelteKit site. `scripts/deck-build.ts` compiles the slides in `content/`, with code excerpts
 copied from adi-sms, into `src/lib/generated/`.
 
-The speaker notes live in a directory outside this repo. `just notes <context> <dir>` builds them into
-`overlay/notes.json` and the notes Secret; `just deck` and `just build` build the deck without notes.
-
 
 `overlay/server.py` serves build and notes at `/presenter/notes.json` and the `/demo` page. A live run there is three
 Kubernetes Jobs from the core's `deploy/` templates, which span a valkey queue pod, a producer and `M` senders. 

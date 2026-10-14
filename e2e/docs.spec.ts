@@ -95,11 +95,12 @@ const tabs = (page: import('@playwright/test').Page) => page.getByRole('tablist'
 const selected = (page: import('@playwright/test').Page) => page.locator('[role="tab"][aria-selected="true"]');
 
 test('/docs shows every doc as a tab, and each page renders its body', async ({ page }) => {
+	test.slow(); // one load per doc
 	await page.goto('/docs');
 	expect(await tabs(page).count()).toBeGreaterThanOrEqual(2);
 	await expect(tabs(page).first()).toHaveAttribute('aria-selected', 'true');
+	await page.setViewportSize({ width: 390, height: 900 });
 	for (const href of await tabs(page).evaluateAll((as) => as.map((a) => a.getAttribute('href')!))) {
-		await page.setViewportSize({ width: 390, height: 900 });
 		await page.goto(href);
 		await expect(selected(page)).toHaveAttribute('href', href);
 		const width = await page.evaluate(() => document.documentElement.scrollWidth);

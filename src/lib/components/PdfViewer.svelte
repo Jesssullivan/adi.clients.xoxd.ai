@@ -36,7 +36,7 @@
 	}
 
 	// Esc closes the viewer wherever focus is, even on <body> after a stage button hides itself. The capture phase
-	// on window runs first, so reveal never sees the key and does not open its overview.
+	// on window runs first, so reveal never sees the key and does not leave the deck.
 	function escape(e: KeyboardEvent) {
 		if (e.key !== 'Escape' || !viewer.href) return;
 		e.stopPropagation();

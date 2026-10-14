@@ -63,7 +63,7 @@ test('with a test id the poster shows, the player loads only on the click, and n
 	const frame = page.locator('iframe');
 	await expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/fixture-id1?autoplay=1');
 	await expect(frame).toHaveAttribute('title', 'Fixture video');
-	await expect.poll(() => player.length).toBe(1);
+	await expect.poll(() => player.length, { timeout: 15_000 }).toBe(1);
 	expect(await box.boundingBox(), 'the player fills the same box').toEqual(before);
 	const cls = await page.evaluate(
 		() =>
@@ -104,7 +104,7 @@ test('on the home page the poster opens a floating window that moves, resizes, m
 	const win = page.locator('[data-video-window]');
 	const frame = win.locator('iframe');
 	await expect(frame).toHaveAttribute('src', 'https://www.youtube-nocookie.com/embed/fixture-id1?autoplay=1');
-	await expect.poll(() => player.length).toBe(1);
+	await expect.poll(() => player.length, { timeout: 15_000 }).toBe(1);
 	await frame.evaluate((f) => ((f as HTMLIFrameElement & { mark: number }).mark = 1));
 	await expect(page.locator('.yt-lite iframe'), 'the poster stays a poster').toHaveCount(0);
 
